@@ -22,6 +22,23 @@ type PortCheckResponse struct {
 type PortResult struct {
 	IP     string `json:"ip"`
 	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+}
+
+func resolveDomain(domain string) ([]string, error) {
+	ips, err := net.LookupIP(domain)
+	if err != nil {
+		return nil, err
+	}
+	
+	var ipStrings []string
+	for _, ip := range ips {
+		// Only include IPv4 addresses
+		if ipv4 := ip.To4(); ipv4 != nil {
+			ipStrings = append(ipStrings, ipv4.String())
+		}
+	}
+	return ipStrings, nil
 }
 
 func checkPort(ip string, port int) bool {
@@ -64,21 +81,44 @@ func handlePortCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := make([]PortResult, 0)
-	for _, ip := range req.IPs {
-		ip = strings.TrimSpace(ip)
-		if ip == "" {
+	for _, input := range req.IPs {
+		input = strings.TrimSpace(input)
+		if input == "" {
 			continue
 		}
 
-		status := "closed"
-		if checkPort(ip, req.Port) {
-			status = "open"
+		// Try to resolve as domain name first
+		ips, err := resolveDomain(input)
+		if err != nil {
+			// If domain resolution fails, treat as IP address
+			ip := net.ParseIP(input)
+			if ip == nil {
+				results = append(results, PortResult{
+					IP:     input,
+					Status: "error",
+					Error:  "Invalid IP address or domain name",
+				})
+				continue
+			}
+			ips = []string{input}
 		}
 
-		results = append(results, PortResult{
-			IP:     ip,
-			Status: status,
-		})
+		// Check port for each resolved IP
+		for _, ip := range ips {
+			status := "closed"
+			if checkPort(ip, req.Port) {
+				status = "open"
+			}
+
+			result := PortResult{
+				IP:     ip,
+				Status: status,
+			}
+			if input != ip {
+				result.IP = fmt.Sprintf("%s (%s)", input, ip)
+			}
+			results = append(results, result)
+		}
 	}
 
 	response := PortCheckResponse{

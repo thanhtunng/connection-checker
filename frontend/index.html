@@ -13,13 +13,13 @@
       <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <div class="mb-6">
           <label class="block text-gray-700 text-sm font-bold mb-2" for="ips">
-            IP Addresses (comma or newline separated)
+            IP Addresses or Domain Names (comma or newline separated)
           </label>
           <textarea
             v-model="ips"
             class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows="6"
-            placeholder="Enter IP addresses here..."
+            placeholder="Enter IP addresses or domain names here (e.g., 192.168.1.1, example.com)..."
           ></textarea>
         </div>
         <div class="mb-6">
@@ -51,12 +51,22 @@
         <div v-if="results.length > 0" class="mt-6 space-y-4">
           <h2 class="text-xl font-semibold mb-4">Results:</h2>
           <div v-for="result in results" :key="result.ip" 
-               :class="['p-4 rounded-lg border', result.status === 'open' ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400']">
+               :class="['p-4 rounded-lg border', 
+                       result.status === 'open' ? 'bg-green-100 border-green-400' : 
+                       result.status === 'error' ? 'bg-yellow-100 border-yellow-400' : 
+                       'bg-red-100 border-red-400']">
             <div class="flex justify-between items-center">
               <span class="font-medium">{{ result.ip }}</span>
-              <span :class="result.status === 'open' ? 'text-green-700' : 'text-red-700'">
-                {{ result.status.toUpperCase() }}
-              </span>
+              <div class="flex flex-col items-end">
+                <span :class="result.status === 'open' ? 'text-green-700' : 
+                             result.status === 'error' ? 'text-yellow-700' : 
+                             'text-red-700'">
+                  {{ result.status.toUpperCase() }}
+                </span>
+                <span v-if="result.error" class="text-sm text-yellow-700">
+                  {{ result.error }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
