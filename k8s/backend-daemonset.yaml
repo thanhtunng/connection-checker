@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ulchecker-backend
+  labels:
+    app: ulchecker-backend
+spec:
+  selector:
+    matchLabels:
+      app: ulchecker-backend
+  template:
+    metadata:
+      labels:
+        app: ulchecker-backend
+    spec:
+      containers:
+      - name: backend
+        image: ulchecker-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ulchecker-backend
+spec:
+  selector:
+    app: ulchecker-backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP 
